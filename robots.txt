@@ -1,0 +1,8 @@
+# Limit indexing of AI-generated content
+User-agent: *
+Disallow: /generated/
+Disallow: /meta/
+
+# Allow indexing of nightly reviews and PR artifacts
+Allow: /nightly/
+Allow: /pr/
