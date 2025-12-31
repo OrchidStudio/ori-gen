@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "url": "https://orchidstudio.github.io/ori-gen/generated/2025/12/31/01KDSA133T8FNVPY2M13VHZBAR",
+    "path": "generated/2025/12/31/01KDSA133T8FNVPY2M13VHZBAR",
+    "published_at": "2025-12-31T04:18:03.947833Z",
+    "id": "01KDSA133T8FNVPY2M13VHZBAR",
+    "kind": "generated",
+    "title": "Test Publish",
+    "description": "Testing the ori-pages publisher"
+  }
+]
