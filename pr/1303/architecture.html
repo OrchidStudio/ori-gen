@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PR #1303: Audio Architecture Migration</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text-muted: #8b949e;
+            --green: #3fb950;
+            --red: #f85149;
+            --blue: #58a6ff;
+            --purple: #a371f7;
+            --yellow: #d29922;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: var(--blue);
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        .subtitle a {
+            color: var(--blue);
+            text-decoration: none;
+        }
+        .subtitle a:hover { text-decoration: underline; }
+        .stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem 1.5rem;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .stat-value.green { color: var(--green); }
+        .stat-value.red { color: var(--red); }
+        .stat-value.blue { color: var(--blue); }
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+        .section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .section-header {
+            background: rgba(88, 166, 255, 0.1);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            font-weight: bold;
+            color: var(--blue);
+        }
+        .section-content {
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        pre {
+            font-size: 0.8rem;
+            white-space: pre;
+            line-height: 1.4;
+        }
+        .add { color: var(--green); }
+        .del { color: var(--red); }
+        .hl { color: var(--blue); }
+        .muted { color: var(--text-muted); }
+        .purple { color: var(--purple); }
+        .yellow { color: var(--yellow); }
+        footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-align: center;
+        }
+        footer a { color: var(--blue); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>PR #1303: AUDIO ARCHITECTURE MIGRATION</h1>
+    <p class="subtitle">
+        "Remove legacy Tauri audio IPC, finalize 5-crate architecture" &nbsp;•&nbsp;
+        <a href="https://github.com/OrchidStudio/orchid/pull/1303" target="_blank">View on GitHub →</a>
+    </p>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value red">-7,475</div>
+            <div class="stat-label">Net Lines</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value blue">114</div>
+            <div class="stat-label">Files Changed</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value green">+69</div>
+            <div class="stat-label">New Rust Tests</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value green">5</div>
+            <div class="stat-label">New Crates</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">BEFORE → AFTER ARCHITECTURE</div>
+        <div class="section-content">
+<pre>
+<span class="del">  BEFORE (Tauri IPC)</span>                    <span class="add">AFTER (REST/WebSocket Server)</span>
+
+    ┌─────────────┐                         ┌─────────────┐
+    │   React     │                         │   React     │
+    │  Frontend   │                         │  Frontend   │
+    └──────┬──────┘                         └──────┬──────┘
+           │ <span class="del">Tauri IPC</span>                             │ <span class="add">REST/WS</span>
+           │ <span class="del">(invoke)</span>                              │ <span class="add">localhost</span>
+           ▼                                       ▼
+    ┌─────────────────────┐              ┌────────────────────────┐
+    │ <span class="del">src-tauri/commands/</span> │              │ <span class="add">orchid-audio-server</span>    │
+    │  <span class="del">├─streaming_*.rs</span>   │<span class="del">──DELETED──▶</span>  │  <span class="add">Axum HTTP + WebSocket</span> │
+    │  <span class="del">├─transcribe.rs</span>    │              │  <span class="add">SessionManager</span>        │
+    │  <span class="del">└─aec.rs</span>           │              │  <span class="add">+1,311 LOC session.rs</span> │
+    └─────────┬───────────┘              └──────────┬─────────────┘
+              │                                     │
+    ┌─────────▼───────────┐              ┌──────────▼─────────────┐
+    │ <span class="del">src-tauri/aec/</span>      │<span class="del">──DELETED──▶</span>  │ <span class="add">orchid-audio-processing</span>│
+    │  <span class="del">~3,500 LOC</span>         │              │  <span class="add">Pipeline orchestration</span>│
+    │  <span class="del">(orchestrator,</span>     │              │  <span class="add">+DI via traits</span>        │
+    │   <span class="del">device_setup,</span>     │              └──────────┬─────────────┘
+    │   <span class="del">processing)</span>       │                    ┌────┴────┐
+    └─────────────────────┘                    ▼         ▼
+                                    ┌─────────────┐ ┌────────────┐
+    ┌─────────────────────┐         │<span class="add">orchid-audio</span> │ │ <span class="add">orchid-stt</span> │
+    │<span class="del">deepgram-audio-</span>      │<span class="del">──DEL──▶</span> │  <span class="add">-capture</span>   │ │ <span class="add">Deepgram</span>   │
+    │  <span class="del">streamer</span>           │         │ <span class="add">CPAL+Mock</span>   │ │ <span class="add">AssemblyAI</span> │
+    │  <span class="del">~2,500 LOC</span>         │         │ <span class="add">+963 LOC</span>    │ │ <span class="add">+MockSTT</span>   │
+    └─────────────────────┘         └──────┬──────┘ └────────────┘
+                                           ▼
+                                    ┌─────────────┐
+                                    │ <span class="add">orchid-aec</span>  │
+                                    │ <span class="add">WebRTC algo</span> │
+                                    └─────────────┘
+</pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">CRATE DEPENDENCY GRAPH (NEW 5-CRATE ARCHITECTURE)</div>
+        <div class="section-content">
+<pre>
+                         ┌─────────────────────────┐
+                         │  <span class="hl">orchid-audio-server</span>    │  ◀── Entry point
+                         │  (Axum, WS, Sessions)   │      REST: /sessions, /devices
+                         └───────────┬─────────────┘      WS: /stream
+                                     │
+                                     │ depends on
+                                     ▼
+                         ┌─────────────────────────┐
+                         │ <span class="hl">orchid-audio-processing</span> │  ◀── Hot-swap orchestration
+                         │  (Pipeline, DI traits)  │      15 business invariant tests
+                         └───────────┬─────────────┘
+                            ┌────────┴────────┐
+                            │                 │
+                            ▼                 ▼
+               ┌────────────────────┐  ┌─────────────────┐
+               │ <span class="hl">orchid-audio-</span>      │  │   <span class="hl">orchid-stt</span>    │
+               │    <span class="hl">capture</span>         │  │ (Deepgram,      │
+               │ (CPAL, ProcessTap) │  │  AssemblyAI)    │
+               │ +MockAudioCapture  │  │ +MockSttProvider│
+               └─────────┬──────────┘  └─────────────────┘
+                         │
+                         ▼
+               ┌────────────────────┐
+               │    <span class="hl">orchid-aec</span>      │  ◀── WebRTC AEC algorithms
+               │  (echo cancel)     │      Lowest-level DSP
+               └────────────────────┘
+</pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">STT PROVIDER CHANGES</div>
+        <div class="section-content">
+<pre>
+   <span class="del">REMOVED</span>                              <span class="add">KEPT/ADDED</span>
+   <span class="muted">───────</span>                              <span class="muted">──────────</span>
+   <span class="del">✗ Sparrow (ORC-649 abandoned)</span>        <span class="add">✓ Deepgram (primary, streaming)</span>
+   <span class="del">✗ SPARROW_STT feature flag</span>           <span class="add">✓ AssemblyAI (renamed from Sparrow refs)</span>
+   <span class="del">✗ deepgram-audio-streamer crate</span>      <span class="add">✓ MockSttProvider (835 LOC, 14 tests)</span>
+                                        <span class="add">✓ EmotionalContext/Emotion types (generic)</span>
+
+   <span class="purple">orchid-stt/providers/</span>
+   ├── <span class="purple">deepgram/</span>
+   │   ├── mod.rs
+   │   ├── response.rs <span class="add">(+20 LOC)</span>
+   │   └── streaming_defects_tests.rs <span class="add">(+252 LOC, NEW)</span>
+   └── <span class="purple">assemblyai/</span>  <span class="muted">(renamed)</span>
+</pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">KEY CHANGES BY LOC</div>
+        <div class="section-content">
+<pre>
+  <span class="del">KEY DELETIONS (src-tauri/)</span>                    LOC  │  <span class="add">KEY ADDITIONS (lib/)</span>     LOC
+  <span class="muted">─────────────────────────────────────────────────────┼───────────────────────────────</span>
+  <span class="del">aec/orchestrator.rs</span>                           456  │  <span class="add">audio-capture/mock.rs</span>     736
+  <span class="del">aec/processing.rs</span>                             712  │  <span class="add">audio-capture/provider.rs</span> 227
+  <span class="del">aec/device_setup.rs</span>                           712  │  <span class="add">audio-server/session.rs</span>  1311
+  <span class="del">aec/tasks.rs</span>                                  771  │  <span class="add">audio-server/hot_swap*.rs</span>1405
+  <span class="del">commands/streaming_hotswap/*</span>                 1829  │  <span class="add">stt/mock.rs</span>               835
+  <span class="del">commands/streaming_start/*</span>                    822  │  <span class="add">README files (3)</span>          372
+  <span class="del">commands/transcribe.rs</span>                        800  │
+  <span class="del">tests/aec_*.rs</span>                              ~3200  │
+  <span class="del">deepgram-audio-streamer (entire)</span>            ~2500  │
+  <span class="muted">─────────────────────────────────────────────────────┴───────────────────────────────</span>
+  <span class="del">TOTAL DELETED: ~10,300 LOC</span>                    <span class="add">TOTAL ADDED: ~4,300 LOC + 69 tests</span>
+</pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">FEATURE FLAGS REMOVED</div>
+        <div class="section-content">
+<pre>
+  <span class="del">✗ USE_AUDIO_SERVER</span>  →  Audio server is now <span class="add">DEFAULT</span> (not optional)
+  <span class="del">✗ SPARROW_STT</span>       →  Provider abandoned, code removed
+</pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">DI (DEPENDENCY INJECTION) LAYER - Enables Testability</div>
+        <div class="section-content">
+<pre>
+   <span class="hl">New Traits:</span>                      <span class="add">Mock Implementations:</span>
+   <span class="muted">────────────</span>                     <span class="muted">─────────────────────</span>
+   <span class="hl">AudioCaptureProvider</span>             <span class="add">MockAudioCaptureProvider (736 LOC)</span>
+   <span class="hl">AudioStreamHandle</span>                └── Generates synthetic audio
+                                    <span class="add">MockSttProvider (835 LOC)</span>
+                                    └── Tracks metrics, returns canned transcripts
+
+   <span class="yellow">Result: 69 new tests run in CI without hardware/credentials</span>
+</pre>
+        </div>
+    </div>
+
+    <footer>
+        Generated by <a href="https://github.com/OrchidStudio/ori-v2">ORI</a> (Orchid Repository Intelligence) •
+        <a href="https://github.com/OrchidStudio/orchid/pull/1303">PR #1303</a>
+    </footer>
+</body>
+</html>
